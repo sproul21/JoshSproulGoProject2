@@ -1,38 +1,53 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"math/rand"
 	"os"
+	"strings"
+	"time"
 )
 
-func SendValue(c chan string) {
-	file, err := os.Open("test.txt")
-
+func fortune(c chan string) {
+	fileasBytes, err := ioutil.ReadFile("Fortunes.txt")
 	if err != nil {
-		log.Fatalf("failed opening file: %s", err)
+		log.Fatalln("Error reading file: ", err)
+
 	}
+	fortunes := strings.Split(string(fileasBytes), "%%")
 
-	scanner := bufio.NewScanner(file)
-	scanner.Split(bufio.ScanLines)
-	var txtlines []string
-
-	for scanner.Scan() {
-		txtlines = append(txtlines, scanner.Text())
+	for {
+		_ = <-c
+		rand.Seed(time.Now().Unix())
+		randomNum := rand.Intn(len(fortunes))
+		fortune := fortunes[randomNum]
+		fmt.Println(fortune)
+		fmt.Println("Would you like another fortune?: YES or NO")
 	}
-
-	file.Close()
-
-	c <- (txtlines[0])
-
 }
 
 func main() {
-	values := make(chan string)
-	defer close(values)
-	go SendValue(values)
-	value := <-values
-	fmt.Println(value)
+	var str string
+	ch := make(chan string)
+	go fortune(ch)
+	fmt.Println("Would you like a fortune?: YES or NO")
+
+	for {
+		_, err := fmt.Scan(&str)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if strings.ToLower(str) == "yes" {
+			ch <- ""
+
+		} else if strings.ToLower(str) == "no" {
+			os.Exit(-1)
+		} else {
+			fmt.Println("Would you like a fortune?: YES or NO")
+			continue
+		}
+	}
 
 }
